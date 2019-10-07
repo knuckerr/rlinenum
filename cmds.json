@@ -1,0 +1,616 @@
+{
+  "binary_list":"nmap\\|perl\\|awk\\|find\\|bash\\|sh\\|man\\|more\\|less\\|vi\\|emacs\\|vim\\|nc\\|netcat\\|python\\|ruby\\|lua\\|irb\\|tar\\|zip\\|gdb\\|pico\\|scp\\|git\\|rvim\\|script\\|ash\\|csh\\|curl\\|dash\\|ed\\|env\\|expect\\|ftp\\|sftp\\|node\\|php\\|rpm\\|rpmquery\\|socat\\|strace\\|taskset\\|tclsh\\|telnet\\|tftp\\|wget\\|wish\\|zsh\\|ssh$\\|ip$\\|arp\\|mtr",
+  "cmds": [
+    {
+      "type": "systeminfo",
+      "print": "### SYSTEM ##############################################",
+      "cmds": [
+        {
+          "print": "[-] Kernel information:",
+          "cmd": "uname -a 2>/dev/null"
+        },
+        {
+          "print": "[-] Kernel Information continue:",
+          "cmd": "cat /proc/version 2>/dev/null"
+        },
+        {
+          "print": "[-] version info",
+          "cmd": "cat /etc/*-release 2>/dev/null"
+        },
+        {
+          "print": "[-]  hostname info",
+          "cmd": "hostname 2>/dev/null"
+        }
+      ]
+    },
+    {
+      "type": "user_info",
+      "print": "### USER/GROUP ##########################################",
+      "cmds": [
+        {
+          "print": "[-] Current user/group info:",
+          "cmd": "id 2>/dev/null"
+        },
+
+        {
+          "print": "[-] Users that have previously logged onto the system:",
+          "cmd": "lastlog 2>/dev/null |grep -v 'Never' 2>/dev/null"
+        },
+
+        {
+          "print": "[-] Who else is logged on:",
+          "cmd": "w 2>/dev/null"
+        },
+
+        {
+          "print": "[-] Group memberships:",
+          "cmd": "for i in $(cut -d':' -f1 /etc/passwd 2>/dev/null);do id $i;done 2>/dev/null"
+        },
+
+        {
+          "print":"[-] It looks like we have some admin users:",
+          "cmd": "$(echo -e \"$grpinfo\" | grep \"(adm)\")"
+        },
+
+        {
+          "print":"[-]  It looks like we have password hashes in /etc/passwd!",
+          "cmd": "grep -v '^[^:]*:[x]' /etc/passwd 2>/dev/null"
+        },
+
+        {
+          "print":"[-] Contents of /etc/passwd:",
+          "cmd": "cat /etc/passwd 2>/dev/null"
+        },
+
+        {
+          "print":"[-] We can read the shadow file!",
+          "cmd": "cat /etc/shadow 2>/dev/null"
+        },
+
+        {
+          "print":"[-] We can read the master.passwd file!",
+          "cmd": "cat /etc/master.passwd 2>/dev/null"
+        },
+        {
+          "print":"[-] Super user account(s):",
+          "cmd": "grep -v -E \"^#\" /etc/passwd 2>/dev/null| awk -F: '$3 == 0 { print $1}' 2>/dev/null"
+        },
+
+        {
+          "print":"[-]  Sudoers configuration (condensed):",
+          "cmd": "grep -v -e '^$' /etc/sudoers 2>/dev/null |grep -v \"#\" 2>/dev/null"
+        },
+
+        {
+          "print":"[-] We can sudo without supplying a password!",
+          "cmd": "echo '' | sudo -S -l -k 2>/dev/null"
+        },
+
+        {
+          "print":"[-] Possible sudo pwnage!",
+          "cmd":"echo '' | sudo -S -l -k 2>/dev/null | xargs -n 1 2>/dev/null | sed 's/,*$//g' 2>/dev/null | grep -w $binarylist 2>/dev/null"
+        },
+        {
+          "print":"[-] Accounts that have recently used sudo",
+          "cmd":"find /home -name .sudo_as_admin_successful 2>/dev/null"
+        },
+        {
+          "print":"[-]  We can read root's home directory!",
+          "cmd":"ls -ahl /root/ 2>/dev/null"
+        },
+        {
+          "print":"[-] Are permissions on /home directories lax:",
+          "cmd": "ls -ahl /home/ 2>/dev/null"
+        },
+
+        {
+          "print":"[-]  Files not owned by user but writable by group:",
+          "cmd":"find \/ -writable ! -user \\`whoami\\` -type f ! -path \"\/proc\/*\" ! -path \"\/sys\/*\" -exec ls -al {} \\; 2>\/dev\/null",
+          "require":"thorough"
+        },
+
+        {
+          "print":"[-] hidden files:",
+          "cmd": "find \/ -user \\`whoami\\` -type f ! -path \"/proc/*\" ! -path \"/sys/*\" -exec ls -al {} \\; 2>\/dev\/null",
+          "require":"thorough"
+        },
+
+        {
+          "print":"[-] world-readable files within /home:",
+          "cmd": "find \/home\/ -perm -4 -type f -exec ls -al {} \\; 2>\/dev\/null",
+          "require":"thorough"
+        },
+
+        {
+          "print":"[-] Home directory contents:",
+          "cmd": "ls -ahl ~ 2>/dev/null",
+          "require":"thorough"
+        },
+
+        {
+          "print":"[-] SSH keys/host information found in the following locations:",
+          "cmd": "find \/ \\( -name \"id_dsa*\" -o -name \"id_rsa*\" -o -name \"known_hosts\" -o -name \"authorized_hosts\" -o -name \"authorized_keys\" \\) -exec ls -la {} 2>\/dev\/null \\;",
+          "require":"thorough"
+        },
+        {
+          "print":" Root is allowed to login via SSH:",
+          "cmd":"grep \"PermitRootLogin \" \/etc\/ssh\/sshd_config 2>\/dev\/null | grep -v \"#\" | awk '{print  $2}'"
+        }
+      ]
+    },
+    {
+      "type":"environmental_info",
+      "print":"### ENVIRONMENTAL #######################################",
+      "cmds":[
+        {
+          "print":"[-] Environment information:",
+          "cmd": "env 2>/dev/null | grep -v 'LS_COLORS' 2>/dev/null"
+        },
+
+        {
+          "print":"[-] SELinux seems to be present:",
+          "cmd": "sestatus 2>/dev/null"
+        },
+
+        {
+          "print":"[-] Path information:",
+          "cmd": "echo $PATH 2>/dev/null"
+        },
+
+        {
+          "print":"[-] Available shells:",
+          "cmd": "cat /etc/shells 2>/dev/null"
+        },
+
+        {
+          "print":"[-] Current umask value:",
+          "cmd": "umask -S 2>/dev/null & umask 2>/dev/null"
+        },
+        {
+          "print":"[-] umask value as specified in /etc/login.defs:",
+          "cmd": "grep -i \"^UMASK\" \/etc\/login.defs 2>\/dev\/null"
+        },
+
+        {
+          "print":"[-] Password and storage information:",
+          "cmd": "grep \"^PASS_MAX_DAYS\\|^PASS_MIN_DAYS\\|^PASS_WARN_AGE\\|^ENCRYPT_METHOD\" \/etc\/login.defs 2>\/dev\/null"
+        }
+
+      ]
+    },
+    {
+      "type":"job_info",
+      "print":"### JOBS/TASKS ##########################################",
+      "cmds":[
+        {
+          "print":"[-]Cron jobs:",
+          "cmd":"ls -la /etc/cron* 2>/dev/null"
+        },
+
+        {
+          "print":"[-] World-writable cron jobs and file contents:",
+          "cmd":"find \/etc\/cron* -perm -0002 -type f -exec ls -la {} \\; -exec cat {} 2>\/dev\/null \\;"
+        },
+
+        {
+          "print":"[-] Crontab contents:",
+          "cmd":"cat /etc/crontab 2>/dev/null"
+        },
+
+        {
+          "print":"[-]  Anything interesting in /var/spool/cron/crontabs:",
+          "cmd":"ls -la /var/spool/cron/crontabs 2>/dev/null"
+        },
+
+        {
+          "print":"[-]  Anacron jobs and associated file permissions:",
+          "cmd":"ls -la /etc/anacrontab 2>/dev/null; cat /etc/anacrontab 2>/dev/null"
+        },
+
+        {
+          "print":"[-] When were jobs last executed (/var/spool/anacron contents):",
+          "cmd":"cut -d \":\" -f 1 \/etc\/passwd | xargs -n1 crontab -l -u 2>\/dev\/null"
+        },
+
+        {
+          "print":"[-]Enable thorough tests to see inactive timers",
+          "cmd":"systemctl list-timers 2>\/dev\/null |head -n -1 2>\/dev\/null"
+        }
+
+      ]
+
+    },
+    {
+      "type":"networking_info",
+      "print":"### NETWORKING  ##########################################",
+      "cmds":[ 
+        {
+          "print":"[-] Network and IP info",
+          "cmd":"/sbin/ifconfig -a 2>/dev/null"
+        },
+
+        {
+          "print":"[-] Network and IP info:",
+          "cmd":"/sbin/ip a 2>/dev/null"
+        },
+        {
+          "print":"[-] ARP history:",
+          "cmd":"arp -a 2>/dev/null"
+        },
+        {
+          "print":"[-] ARP history:",
+          "cmd":"ip n 2>/dev/null"
+        },
+        {
+          "print":"[-] Nameserver(s):",
+          "cmd":"grep \"nameserver\" /etc/resolv.conf 2>/dev/null"
+        },
+        {
+          "print":"[-] Nameserver(s):",
+          "cmd":"systemd-resolve --status 2>/dev/null"
+        },
+        
+        {
+          "print":"[-]Default route:",
+          "cmd":"route 2>/dev/null | grep default"
+        },
+        {
+          "print":"[-] Default route:",
+          "cmd":"ip r 2>/dev/null | grep default"
+        },
+        {
+          "print":"[-]  Listening TCP",
+          "cmd":"netstat -nupl 2>/dev/null"
+        },
+        {
+          "print":"[-] Listening UDP:",
+          "cmd":"ss -u -l -n 2>/dev/null"
+        }
+      ]
+    },
+    {
+      "type":"services_info",
+      "print":"### SERVICES #############################################",
+      "cmds":[ 
+        {
+          "print":"[-]Running processes:",
+          "cmd":"ps aux 2>/dev/null"
+        },
+        {
+          "print":"[-] Process binaries and associated permissions (from above list)",
+          "cmd":"ps aux 2>\/dev\/null | awk '{print $11}'|xargs -r ls -la 2>\/dev\/null |awk '!x[$0]++' 2>\/dev\/null"
+        },
+        {
+          "print":"[-]  Contents of /etc/inetd.conf:",
+          "cmd":"cat /etc/inetd.conf 2>/dev/null"
+        },
+        {
+          "print":"[-] The related inetd binary permissions:",
+          "cmd":"awk '{print $7}' \/etc\/inetd.conf 2>\/dev\/null |xargs -r ls -la 2>\/dev\/null"
+        },
+        {
+          "print":"[-] Contents of /etc/xinetd.conf:",
+          "cmd":"cat /etc/xinetd.conf 2>/dev/null"
+        },
+        {
+          "print":"[-] /etc/xinetd.d is included in /etc/xinetd.conf - associated binary permissions are listed below",
+          "cmd":"grep \"\/etc\/xinetd.d\" \/etc\/xinetd.conf 2>\/dev\/null"
+        }, 
+        {
+          "print":"[-] The related xinetd binary permissions:",
+          "cmd":"awk '{print $7}' /etc/xinetd.conf 2>/dev/null |xargs -r ls -la 2>/dev/null"
+        },
+        {
+          "print":"[-] /etc/init.d/ binary permissions:",
+          "cmd":"ls -la /etc/init.d 2>/dev/null"
+        },
+        {
+          "print":"[-] /etc/init.d/ files not belonging to root:",
+          "cmd":"find \/etc\/init.d\/ \\! -uid 0 -type f 2>\/dev\/null |xargs -r ls -la 2>\/dev\/null"
+        },
+        {
+          "print":"[-] /etc/rc.d/init.d binary permissions:",
+          "cmd":"ls -la /etc/rc.d/init.d 2>/dev/null"
+        },
+
+        {
+          "print":"[-] /etc/rc.d/init.d files not belonging to root:",
+          "cmd":"find \/etc\/rc.d\/init.d \\! -uid 0 -type f 2>\/dev\/null |xargs -r ls -la 2>\/dev\/null"
+        },
+        {
+          "print":"[-] /usr/local/etc/rc.d binary permissions:",
+          "cmd":"ls -la /usr/local/etc/rc.d 2>/dev/null"
+        },
+        {
+          "print":"[-] /usr/local/etc/rc.d files not belonging to root:",
+          "cmd":"find \/usr\/local\/etc\/rc.d \\! -uid 0 -type f 2>\/dev\/null |xargs -r ls -la 2>\/dev\/null"
+        },
+        {
+          "print":"[-] /etc/init/ config file permissions:",
+          "cmd":"ls -la /etc/init/ 2>/dev/null"
+        },
+        {
+          "print":"[-]  /etc/init/ config files not belonging to root:",
+          "cmd":"find \/etc\/init \\! -uid 0 -type f 2>\/dev\/null |xargs -r ls -la 2>\/dev\/null"
+        },
+
+        {
+          "print":"[-] /lib/systemd/* config file permissions:",
+          "cmd":"ls -lthR /lib/systemd/ 2>/dev/null"
+        },
+
+        {
+          "print":"[-] /lib/systemd/* config files not belonging to root:",
+          "cmd":"find \/lib\/systemd\/ \\! -uid 0 -type f 2>\/dev\/null |xargs -r ls -la 2>\/dev\/null"
+        }
+      ]
+    },
+    {
+      "type": "softoware_config",
+      "print": "### SOFTWARE #############################################",
+      "cmds": [
+        {
+          "print":"[-] Sudo version:",
+          "cmd":"sudo -V 2>/dev/null| grep \"Sudo version\" 2>/dev/null"
+        },
+        {
+          "print":"[-]MYSQL version:",
+          "cmd":"mysql --version 2>/dev/null"
+        },
+        {
+          "print":"[-] We can connect to the local MYSQL service with default root/root credentials!",
+          "cmd":"mysqladmin -uroot -proot version 2>/dev/null"
+        },
+        {
+          "print":"[-] We can connect to the local MYSQL service as 'root' and without a password!",
+          "cmd":"mysqladmin -uroot version 2>/dev/null"
+        },
+        {
+          "print":"[-] Postgres version:",
+          "cmd":"psql -V 2>/dev/null"
+        },
+        {
+          "print":"[-] We can connect to Postgres DB 'template0' as user 'postgres' with no password!:",
+          "cmd":"psql -U postgres template0 -c 'select version()' 2>/dev/null | grep version"
+        },
+        {
+          "print":"[-] We can connect to Postgres DB 'template1' as user 'postgres' with no password!:",
+          "cmd":"psql -U postgres template1 -c 'select version()' 2>/dev/null | grep version"
+        },
+        {
+          "print":"[-] We can connect to Postgres DB 'template0' as user 'psql' with no password!: ",
+          "cmd":"psql -U pgsql template0 -c 'select version()' 2>/dev/null | grep version"
+        },
+        {
+          "print":"[-] We can connect to Postgres DB 'template1' as user 'psql' with no password!:",
+          "cmd":"psql -U pgsql template1 -c 'select version()' 2>/dev/null | grep version"
+        },
+        {
+          "print":"[-] Apache version:",
+          "cmd":"apache2 -v 2>/dev/null; httpd -v 2>/dev/null"
+        },
+        {
+          "print":"[-] Apache user configuration:",
+          "cmd":"grep -i 'user\\|group' \/etc\/apache2\/envvars 2>\/dev\/null |awk '{sub(\/.*\\export \/,\"\")}1' 2>\/dev\/null"
+        },
+
+        {
+          "print":"[-] Installed Apache modules:",
+          "cmd":"apache2ctl -M 2>/dev/null; httpd -M 2>/dev/null"
+        },
+        {
+          "print":"[-] htpasswd found - could contain passwords:",
+          "cmd":"find \/ -name .htpasswd -print -exec cat {} \\; 2>\/dev\/null"
+        },
+        {
+          "print":"[-] www home dir contents:",
+          "cmd":"ls -alhR \/var\/www\/ 2>\/dev\/null; ls -alhR \/srv\/www\/htdocs\/ 2>\/dev\/null; ls -alhR \/usr\/local\/www\/apache2\/data\/ 2>\/dev\/null; ls -alhR \/opt\/lampp\/htdocs\/ 2>\/dev\/null"
+        }
+      ]
+    },
+    {
+      "type":"interesting_files",
+      "print":"### INTERESTING FILES ####################################",
+      "cmds":[
+        {
+          "print":"[-] Useful file locations:",
+          "cmd":"which nc 2>/dev/null ; which netcat 2>/dev/null ; which wget 2>/dev/null ; which nmap 2>/dev/null ; which gcc 2>/dev/null; which curl 2>/dev/null "
+        },
+
+        {
+          "print":"[-] Installed compilers:",
+          "cmd":"dpkg --list 2>/dev/null| grep compiler |grep -v decompiler 2>/dev/null && yum list installed 'gcc*' 2>/dev/null| grep gcc 2>/dev/null"
+        },
+        {
+          "print":"[-]  Can we read/write sensitive files:",
+          "cmd":"ls -la /etc/passwd 2>/dev/null ; ls -la /etc/group 2>/dev/null ; ls -la /etc/profile 2>/dev/null; ls -la /etc/shadow 2>/dev/null ; ls -la /etc/master.passwd 2>/dev/null "
+        },
+        {
+          "print":"[-] SUID files:",
+          "cmd":"find \/ -perm -4000 -type f -exec ls -la {} 2>\/dev\/null \\;"
+        },
+        {
+          "print":"[-] Possibly interesting SUID files:",
+          "cmd":"find \/ -perm -4000 -type f -exec ls -la {} \\; 2>\/dev\/null | grep -w $binarylist 2>\/dev\/null"
+        },
+        {
+          "print":"[-] World-writable SUID files owned by root:",
+          "cmd":"find \/ -uid 0 -perm -4002 -type f -exec ls -la {} 2>\/dev\/null \\;"
+        },
+        {
+          "print":"[-] SGID files:",
+          "cmd":"find \/ -perm -2000 -type f -exec ls -la {} 2>\/dev\/null \\;"
+        },
+        {
+          "print":"[-] Possibly interesting SGID files:",
+          "cmd":"find \/ -perm -2000 -type f  -exec ls -la {} \\; 2>\/dev\/null | grep -w $binarylist 2>\/dev\/null"
+        },
+        {
+          "print":"[-] World-writable SGID files:",
+          "cmd":"find \/ -perm -2002 -type f -exec ls -la {} 2>\/dev\/null \\;"
+        },
+        {
+          "print":"[-] World-writable SGID files owned by root",
+          "cmd":"find \/ -uid 0 -perm -2002 -type f -exec ls -la {} 2>\/dev\/null \\;"
+        },
+        {
+          "print":"[-] Files with POSIX capabilities set",
+          "cmd":"getcap -r \/ 2>\/dev\/null || \/sbin\/getcap -r \/ 2>\/dev\/null"
+        },
+        {
+          "print":"[-] Users with specific POSIX capabilities:",
+          "cmd":"grep -v '^#\\|none\\|^$' \/etc\/security\/capability.conf 2>\/dev\/null"
+        },
+        {
+          "print":"[-] Private SSH keys found!",
+          "cmd":"grep -rl \"PRIVATE KEY-----\" \/home 2>\/dev\/null",
+          "require":"thorough"
+        },
+
+        {
+          "print":"[-]  AWS secret keys found!",
+          "cmd":"grep -rli \"aws_secret_access_key\" \/home 2>\/dev\/null",
+          "require":"thorough"
+        },
+        {
+          "print":"[-] Git credentials saved on the machine!",
+          "cmd":"find \/ -name \".git-credentials\" 2>\/dev\/null",
+          "require":"thorough"
+        },
+        {
+          "print":"[-] World-writable files (excluding /proc and /sys):",
+          "cmd":"find \/ ! -path \"*\/proc\/*\" ! -path \"\/sys\/*\" -perm -2 -type f -exec ls -la {} 2>\/dev\/null \\;",
+          "require":"thorough"
+
+        },
+        {
+          "print":"[-] Plan file permissions and contents:",
+          "cmd":"find /home -iname *.plan -exec ls -la {} \\; -exec cat {} 2>/dev/null \\;"
+        },
+        {
+          "print":"[-] Plan file permissions and contents:",
+          "cmd":"find /usr/home -iname *.plan -exec ls -la {} \\; -exec cat {} 2>/dev/null \\;"
+        },
+        {
+          "print":"[-] rhost config file(s) and file contents:",
+          "cmd":"find /home -iname *.rhosts -exec ls -la {} 2>/dev/null \\; -exec cat {} 2>/dev/null \\;"
+        },
+        {
+          "print":"[-] rhost config file(s) and file contents:",
+          "cmd":"find /usr/home -iname *.rhosts -exec ls -la {} 2>/dev/null \\; -exec cat {} 2>/dev/null \\;"
+        },
+        {
+          "print":"[-] Hosts.equiv file and contents:",
+          "cmd":"find /etc -iname hosts.equiv -exec ls -la {} 2>/dev/null \\; -exec cat {} 2>/dev/null \\;"
+        },
+        {
+          "print":"[-] NFS config details: ",
+          "cmd":"ls -la /etc/exports 2>/dev/null; cat /etc/exports 2>/dev/null"
+        },
+        {
+          "print":"[-] NFS displaying partitions and filesystems - you need to check if exotic filesystems",
+          "cmd":"cat /etc/fstab 2>/dev/null",
+          "require":"thorough"
+        },
+        {
+          "print":"[-]  Looks like there are credentials in /etc/fstab!",
+          "cmd": "grep username \/etc\/fstab 2>\/dev\/null |awk '{sub(\/.*\\username=\/,\"\");sub(\/\\,.*\/,\"\")}1' 2>\/dev\/null| xargs -r echo username: 2>\/dev\/null; grep password \/etc\/fstab 2>\/dev\/null |awk '{sub(\/.*\\password=\/,\"\");sub(\/\\,.*\/,\"\")}1' 2>\/dev\/null| xargs -r echo password: 2>\/dev\/null; grep domain \/etc\/fstab 2>\/dev\/null |awk '{sub(\/.*\\domain=\/,\"\");sub(\/\\,.*\/,\"\")}1' 2>\/dev\/null| xargs -r echo domain: 2>\/dev\/null"
+        },
+
+        {
+          "print":"[-] /etc/fstab contains a credentials file!",
+          "cmd": "grep cred \/etc\/fstab 2>\/dev\/null |awk '{sub(\/.*\\credentials=\/,\"\");sub(\/\\,.*\/,\"\")}1' 2>\/dev\/null | xargs -I{} sh -c 'ls -la {}; cat {}' 2>\/dev\/null"
+        },
+
+        {
+          "print":"[-] Find keyword ($keyword) in .conf files (recursive 4 levels - output format filepath:identified line number where keyword appears):",
+          "cmd": "find / -maxdepth 4 -name *.conf -type f -exec grep -Hn $keyword {} \\; 2>/dev/null",
+          "require":"keyword"
+        },
+        {
+          "print":"[-] Find keyword ($keyword) in .log files (recursive 4 levels - output format filepath:identified line number where keyword appears):",
+          "cmd": "find / -maxdepth 4 -name *.log -type f -exec grep -Hn $keyword {} \\; 2>/dev/null",
+          "require":"keyword"
+        },
+        {
+          "print":"[-] Find keyword ($keyword) in .ini files (recursive 4 levels - output format filepath:identified line number where keyword appears):",
+          "cmd": "find / -maxdepth 4 -name *.ini -type f -exec grep -Hn $keyword {} \\; 2>/dev/null",
+          "require":"keyword"
+        },
+        {
+          "print":"[-]  All *.conf files in /etc (recursive 1 level):",
+          "cmd": "find /etc/ -maxdepth 1 -name *.conf -type f -exec ls -la {} \\; 2>/dev/null"
+        },
+        {
+          "print":"[-] Current user's history files:",
+          "cmd": "ls -la ~/.*_history 2>/dev/null"
+        },
+        {
+          "print":"[-] Root's history files are accessible!",
+          "cmd": "ls -la /root/.*_history 2>/dev/null"
+        },
+        {
+          "print":"[-]  Location and contents (if accessible) of .bash_history file",
+          "cmd": "find /home -name .bash_history -print -exec cat {} 2>/dev/null \\;"
+        },
+        {
+          "print":"[-] Any interesting mail in /var/mail:",
+          "cmd": "ls -la /var/mail 2>/dev/null"
+        },
+        {
+          "print":"[-] We can read /var/mail/root!",
+          "cmd": "head /var/mail/root 2>/dev/null"
+        }
+      ]
+    },
+    {
+      "type":"docker_checks",
+      "print":"### docker checks ####################################",
+      "cmds":[
+        {
+          "print":"[-] Looks like we're in a Docker container:",
+          "cmd":"grep -i docker /proc/self/cgroup  2>/dev/null; find / -name \"*dockerenv*\" -exec ls -la {} \\; 2>/dev/null"
+
+        },
+
+        {
+          "print":"[-]  Looks like we're hosting Docker",
+          "cmd":"docker --version 2>/dev/null; docker ps -a 2>/dev/null"
+
+        },
+        {
+          "print":"[-]  We're a member of the (docker) group - could possibly misuse these rights!",
+          "cmd":"id | grep -i docker 2>/dev/null;"
+
+        },
+        {
+          "print":"[-]  Anything juicy in the Dockerfile:",
+          "cmd":"find / -name Dockerfile -exec ls -l {} 2>/dev/null \\;"
+
+        },
+        {
+          "print":"[-]  Anything juicy in docker-compose.yml",
+          "cmd":"find / -name docker-compose.yml -exec ls -l {} 2>/dev/null \\;"
+
+        }
+
+      ]
+    },
+    {
+      "type":"lxc_container_check",
+      "print":"### lxc_container_check ####################################",
+      "cmds":[
+        {
+          "print":"[-]  Looks like we're in a lxc container:",
+          "cmd": "grep -qa container=lxc /proc/1/environ 2>/dev/null"
+        },
+
+        {
+          "print":"[-]  We're a member of the (lxd) group - could possibly misuse these rights!",
+          "cmd": "id | grep -i lxd 2>/dev/null"
+        }
+
+      ]
+    }
+  ]
+}
