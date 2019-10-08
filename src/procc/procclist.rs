@@ -50,10 +50,10 @@ pub fn proc_status_read(id: i32) -> Result<String, Error> {
 pub fn proc_cmd_read(id: i32) -> Result<String, Error> {
     let status_file = format!("/proc/{}/cmdline", id);
     let mut file = File::open(status_file)?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-    let contents = contents.replace("\u{0}"," ");
-    Ok(contents)
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer)?;
+    let contents = String::from_utf8_lossy(&buffer);
+    Ok(contents.to_string())
 }
 
 pub fn f2pid(folder: &Path) -> Result<i32, Error> {
