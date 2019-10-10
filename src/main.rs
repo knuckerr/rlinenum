@@ -8,7 +8,7 @@ mod export;
 mod cmds;
 mod inotify;
 mod procc;
-use procc::procclist::start;
+use procc::procclist::start_watch;
 
 
 fn main() {
@@ -35,6 +35,6 @@ fn main() {
     read_events(events);
     */
 
-    start();
+    start_watch();
 
 }
