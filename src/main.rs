@@ -2,17 +2,14 @@
 #[macro_use]
 extern crate lazy_static;
 
-
-mod tools;
-mod export;
 mod cmds;
+mod export;
 mod inotify;
 mod procc;
-use procc::procclist::start_watch;
-
+mod tools;
 
 fn main() {
-    let file = include_str!("../cmds.json");
+    let _file = include_str!("../cmds.json");
     //http_get("http://localhost/test.txt").unwrap();
     //tcp_echo("localhost",443,"/tmp/test.txt").unwrap();
     /*
@@ -24,7 +21,7 @@ fn main() {
     }
     // We create a new inotify instance.
     let inotify = init().unwrap();
-    
+
 
 
     // We add a new watch on directory "test" for all events.
@@ -33,7 +30,4 @@ fn main() {
     let events = inotify.read_events().unwrap();
     read_events(events);
     */
-
-    //start_watch();
-
 }

@@ -13,6 +13,8 @@ reqwest = "0.9.21"
 nix = "0.15.0"
 lazy_static = "1.4.0"
 failure = "0.1.5"
+crossbeam-channel = "0.3"
+crossbeam-utils = "0.6"
 
 [profile.release]
 lto = true

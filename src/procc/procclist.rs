@@ -1,19 +1,16 @@
+use crossbeam_channel::Sender;
 use failure::{err_msg, Error};
 use std::collections::HashMap;
 use std::fs::{self, ReadDir};
 use std::path::Path;
-
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 #[derive(Clone)]
 pub struct Event {
-    uid_s: i32,
-    pid_s: i32,
-    cmd_s: String,
-}
-
-#[derive(Clone)]
-pub struct Events {
-    pids: HashMap<i32, Event>,
+    pub uid_s: i32,
+    pub pid_s: i32,
+    pub cmd_s: String,
 }
 
 pub fn read_proc_dir() -> Result<ReadDir, Error> {
@@ -66,63 +63,38 @@ pub fn get_uid(pid: i32) -> Result<i32, Error> {
     Ok(uuid)
 }
 
-pub fn get_events() -> Result<Events, Error> {
-    let mut events = HashMap::new();
-    let pids = getpids()?;
-    for pid_t in pids {
-        let event = pid2event(pid_t)?;
-        events.insert(pid_t, event);
+pub fn add_pid(pid: i32, sender: Sender<Event>, procc_list: &mut HashMap<i32, String>) {
+    let cmd = proc_cmd_read(pid);
+    let uid = get_uid(pid);
+    match (cmd, uid) {
+        (Ok(cmd), Ok(uid)) => {
+            let event = Event {
+                pid_s: pid,
+                uid_s: uid,
+                cmd_s: cmd.clone(),
+            };
+            sender.send(event).unwrap();
+            procc_list.insert(pid, cmd);
+        }
+        _ => {}
     }
-    Ok(Events { pids: events })
 }
 
-pub fn pid2event(pid: i32) -> Result<Event, Error> {
-    let cmd = proc_cmd_read(pid)?;
-    let uid = get_uid(pid)?;
-    let event = Event {
-        pid_s: pid,
-        uid_s: uid,
-        cmd_s: cmd,
-    };
-    Ok(event)
-}
-
-pub fn clear(events:&mut Events) -> Result<&mut Events,Error> {
+pub fn refresh(procc_list: &mut HashMap<i32, String>, sender: Sender<Event>) -> Result<(), Error> {
     let pids = getpids()?;
-    events.pids.retain(|k, _| pids.contains(k));
-    Ok(events)
-}
-
-pub fn refresh(events: &mut Events) -> Result<&mut Events, Error> {
-    let new_pids = getpids()?;
-    for pid in new_pids {
-        if !events.pids.contains_key(&pid) {
-            let event = pid2event(pid);
-            if event.is_ok() {
-                let event = event.unwrap();
-                if event.cmd_s != "" {
-                    println!(
-                        "PID: {},UID:{}\t || CMD:\t{}",
-                        event.pid_s, event.uid_s, event.cmd_s
-                    );
-                    events.pids.insert(pid, event);
-                }
-            }
+    for pid in pids {
+        if !procc_list.contains_key(&pid) {
+            add_pid(pid, sender.clone(), procc_list);
         }
     }
-
-    Ok(events)
+    Ok(())
 }
 
-pub fn start_watch() -> Result<(), Error> {
-    let mut events = get_events()?;
-    for (_pid, event) in &events.pids {
-        println!(
-            "pid: {},uid:{}\t || cmd:\t{}",
-            event.pid_s, event.uid_s, event.cmd_s
-        );
-    }
-    loop {
-        refresh(&mut events)?;
-    }
+pub fn start(sender: Sender<Event>) {
+    let procc_list: HashMap<i32, String> = HashMap::new();
+    let list = Arc::new(Mutex::new(procc_list));
+    let list_clone = list.clone();
+    thread::spawn(move || loop {
+        refresh(&mut list_clone.lock().unwrap(), sender.clone()).unwrap();
+    });
 }
