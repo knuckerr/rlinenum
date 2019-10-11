@@ -1,35 +1,43 @@
 use crate::inotify::events::EVENTS;
-use nix::sys::inotify::{AddWatchFlags, InitFlags, Inotify,InotifyEvent,WatchDescriptor};
+use crossbeam_channel::Sender;
+use nix::sys::inotify::{AddWatchFlags, InitFlags, Inotify, InotifyEvent};
 use std::ffi::OsString;
-use failure::Error;
+use std::thread;
 
+pub struct Watcher {
+    event: String,
+    filename: String,
+    path: String,
+}
 
 pub fn get_event(event: AddWatchFlags) -> String {
     let name_event = EVENTS.get(&event).unwrap_or(&"Error: Reading the Event");
     name_event.to_string()
 }
 
-pub fn init() -> Result<Inotify,Error> {
-    let instance = Inotify::init(InitFlags::empty())?;
-    Ok(instance)
-}
-
-pub fn add_watch(inotify:Inotify,path:&str) -> Result<WatchDescriptor,Error> {
-    let wd = inotify.add_watch(path, AddWatchFlags::IN_ALL_EVENTS)?;
-    Ok(wd)
-}
-
-pub fn remove_watch(inotify:Inotify,wd:WatchDescriptor) -> Result<(),Error>{
-    inotify.rm_watch(wd)?;
-    Ok(())
-}
-
-pub fn read_events(events:Vec<InotifyEvent>) {
-    for event in events{
+pub fn read_events(events: Vec<InotifyEvent>, path: &str, sender: Sender<Watcher>) {
+    for event in events {
         let event_name = get_event(event.mask);
-        let filename = event.name.unwrap_or_else(|| OsString::from("Empty")).into_string().unwrap();
-        let results = format!("Event: {}, Filename:{}",event_name,filename);
-        println!("{}",results);
+        let filename = event
+            .name
+            .unwrap_or_else(|| OsString::from("Empty"))
+            .into_string()
+            .unwrap();
+        let watcher = Watcher {
+            event: event_name,
+            filename: filename,
+            path: path.to_string(),
+        };
+        sender.send(watcher).unwrap();
     }
-
+}
+pub fn start(path: &'static str, sender: Sender<Watcher>) {
+    let instance = Inotify::init(InitFlags::empty()).unwrap();
+    instance
+        .add_watch(path, AddWatchFlags::IN_ALL_EVENTS)
+        .unwrap();
+    thread::spawn(move || loop {
+        let events = instance.read_events().unwrap();
+        read_events(events, path, sender.clone());
+    });
 }
