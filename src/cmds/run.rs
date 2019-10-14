@@ -72,8 +72,4 @@ pub fn run(cmd: &mut Cmd, binary_list: &str) {
 
     let output = child_shell.wait_with_output().unwrap();
     cmd.results = String::from_utf8_lossy(output.stdout.as_slice()).to_string();
-    if cmd.results != "" {
-        println!("{}", cmd.print);
-        println!("{}", cmd.results);
-    }
 }

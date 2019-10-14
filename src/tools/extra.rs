@@ -1,10 +1,10 @@
 use std::net::TcpStream;
 use std::fs;
-use std::error::Error;
+use failure::Error;
 use std::io::{Write,copy};
 use std::fs::File;
 
-pub fn tcp_echo(ip:&str,port:i32,report:&str) -> Result<(),Box<dyn Error>>{
+pub fn tcp_echo(ip:&str,port:i32,report:&str) -> Result<(),Error>{
     let ip_port = format!("{}:{}",ip,port);
     let contents = fs::read_to_string(report)?;
     let mut stream = TcpStream::connect(ip_port)?;
@@ -12,7 +12,7 @@ pub fn tcp_echo(ip:&str,port:i32,report:&str) -> Result<(),Box<dyn Error>>{
     Ok(())
 }
 
-pub fn http_get(url:&str) -> Result<(),Box<dyn Error>>{
+pub fn http_get(url:&str) -> Result<(),Error>{
     let mut resp = reqwest::get(url).expect("request failed");
     let mut dest = {
         let fname = resp

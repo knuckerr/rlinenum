@@ -26,6 +26,23 @@ pub fn json_report(cmds: &Root, path: &str) -> Result<(),Error> {
     Ok(())
 }
 
+
+pub fn export_results(cmds:&Root,path:&str) -> Result<(),Error> {
+    let mut file = report(path)?;
+    for cmd_root in cmds.cmds.iter(){
+        let cmd_root_write = format!("{}\n\n",cmd_root.print);
+        file.write_all(cmd_root_write.as_bytes())?;
+        for cmd in cmd_root.cmds.iter() {
+            let cmd_print_write = format!("{}\n\n",cmd.print);
+            file.write_all(cmd_print_write.as_bytes())?;
+            let results = format!("{}\n\n",cmd.results);
+            file.write_all(results.as_bytes())?;
+        }
+    }
+    Ok(())
+}
+
+
 pub fn export_cmd_list(cmds:&Root,path:&str) -> Result<(),Error> {
     let mut file = report(path)?;
     for cmd_root in cmds.cmds.iter(){

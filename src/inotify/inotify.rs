@@ -3,6 +3,7 @@ use crossbeam_channel::Sender;
 use nix::sys::inotify::{AddWatchFlags, InitFlags, Inotify, InotifyEvent};
 use std::ffi::OsString;
 use std::thread;
+use walkdir::WalkDir;
 
 pub struct Watcher {
     event: String,
@@ -15,21 +16,31 @@ pub fn get_event(event: AddWatchFlags) -> String {
     name_event.to_string()
 }
 
-pub fn read_events(events: Vec<InotifyEvent>, path: &str, sender: Sender<Watcher>) {
+pub fn read_events(events: Vec<InotifyEvent>, path_folder: &str, sender: Sender<Watcher>) {
     for event in events {
         let event_name = get_event(event.mask);
-        let filename = event
+        let file_name = event
             .name
             .unwrap_or_else(|| OsString::from("Empty"))
             .into_string()
             .unwrap();
         let watcher = Watcher {
             event: event_name,
-            filename: filename,
-            path: path.to_string(),
+            filename: file_name,
+            path: path_folder.to_string(),
         };
         sender.send(watcher).unwrap();
     }
+}
+pub fn walk_dir(path: &str) -> Vec<String> {
+    let mut folders = Vec::new();
+    for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
+        if entry.path().is_dir() {
+            let folder: String = entry.path().to_string_lossy().into();
+            folders.push(folder);
+        }
+    }
+    folders
 }
 pub fn start(path: &'static str, sender: Sender<Watcher>) {
     let instance = Inotify::init(InitFlags::empty()).unwrap();
