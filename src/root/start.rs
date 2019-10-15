@@ -50,8 +50,8 @@ fn start_procc() {
 fn start_watch(folders: Vec<&str>, s: Sender<Watcher>) {
     for f in folders {
         let result = i_start(f, s.clone());
-        if result.is_err(){
-            eprintln!("{}",result.unwrap_err());
+        if result.is_err() {
+            eprintln!("{}", result.unwrap_err());
         }
     }
 }
@@ -60,8 +60,8 @@ fn start_watch_walker(folders: Vec<&str>, s: Sender<Watcher>) {
     let walker = walk_dir(folders);
     for f in walker {
         let result = i_start(&f, s.clone());
-        if result.is_err(){
-            eprintln!("{}",result.unwrap_err());
+        if result.is_err() {
+            eprintln!("{}", result.unwrap_err());
         }
     }
 }
@@ -78,6 +78,14 @@ fn watcher(folders: Vec<&str>, folders_walk: Vec<&str>) {
         let data = r.recv();
         match data {
             Ok(data) => {
+                if data.event == "CREATE DIR" {
+                    let folder = format!("{}/{}", data.path, data.filename);
+                    let result = i_start(&folder, s.clone());
+
+                    if result.is_err() {
+                        eprintln!("{}", result.unwrap_err());
+                    }
+                }
                 println!(
                     "PATH:{},FILENAME:{},EVENT:\t{}",
                     data.path, data.filename, data.event
