@@ -4,11 +4,12 @@ use nix::sys::inotify::{AddWatchFlags, InitFlags, Inotify, InotifyEvent};
 use std::ffi::OsString;
 use std::thread;
 use walkdir::WalkDir;
+use failure::Error;
 
 pub struct Watcher {
-    event: String,
-    filename: String,
-    path: String,
+    pub event: String,
+    pub filename: String,
+    pub path: String,
 }
 
 pub fn get_event(event: AddWatchFlags) -> String {
@@ -32,23 +33,26 @@ pub fn read_events(events: Vec<InotifyEvent>, path_folder: &str, sender: Sender<
         sender.send(watcher).unwrap();
     }
 }
-pub fn walk_dir(path: &str) -> Vec<String> {
+pub fn walk_dir(paths: Vec<&str>) -> Vec<String> {
     let mut folders = Vec::new();
-    for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
-        if entry.path().is_dir() {
-            let folder: String = entry.path().to_string_lossy().into();
-            folders.push(folder);
+    for path in paths {
+        for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
+            if entry.path().is_dir() {
+                let folder: String = entry.path().to_string_lossy().into();
+                folders.push(folder);
+            }
         }
     }
     folders
 }
-pub fn start(path: &'static str, sender: Sender<Watcher>) {
+pub fn start(path: &str, sender: Sender<Watcher>) -> Result<(),Error> {
     let instance = Inotify::init(InitFlags::empty()).unwrap();
     instance
-        .add_watch(path, AddWatchFlags::IN_ALL_EVENTS)
-        .unwrap();
+        .add_watch(path, AddWatchFlags::IN_ALL_EVENTS)?;
+    let path_clone = path.to_string().clone();
     thread::spawn(move || loop {
         let events = instance.read_events().unwrap();
-        read_events(events, path, sender.clone());
+        read_events(events, &path_clone, sender.clone());
     });
+    Ok(())
 }

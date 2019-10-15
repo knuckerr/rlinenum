@@ -6,15 +6,15 @@ mod cmds;
 mod export;
 mod inotify;
 mod procc;
-mod tools;
 mod root;
-use root::start::begin;
-use clap::{App, Arg};
+mod tools;
+use clap::{App, Arg, SubCommand};
 use cmds::run::Root;
+use root::start::begin;
 
 fn main() {
     let cmd_json = include_str!("../cmds.json");
-    let mut cmds :Root= serde_json::from_str(cmd_json).unwrap();
+    let mut cmds: Root = serde_json::from_str(cmd_json).unwrap();
     let matches = App::new("Rlinuem")
         .version("1.0")
         .author("Knucker")
@@ -88,15 +88,34 @@ fn main() {
                 .multiple(true)
                 .required(false),
         )
-        .arg(
-            Arg::with_name("echo")
-                .long("echo")
-                .value_name("IP:PORT")
-                .help("TCP ECHO a file to the nc listener")
-                .takes_value(true)
-                .multiple(true)
-                .required(false),
-        )
+        .subcommand(SubCommand::with_name("echo")
+            .arg(
+                Arg::with_name("ip")
+                    .long("ip")
+                    .value_name("IP")
+                    .help("ip of the nc listener")
+                    .takes_value(true)
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("port")
+                    .long("port")
+                    .value_name("port")
+                    .help("port of the nc listener")
+                    .takes_value(true)
+                    .required(true),
+            )
+            .arg(
+                Arg::with_name("file")
+                    .long("file")
+                    .value_name("file")
+                    .help("file to echo to the nc listener")
+                    .takes_value(true)
+                    .required(true),
+            ))
         .get_matches();
-    begin(&mut cmds,matches);
+    let result = begin(&mut cmds, matches);
+    if result.is_err() {
+        eprintln!("{}", result.unwrap_err());
+    }
 }
