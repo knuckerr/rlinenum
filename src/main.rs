@@ -35,13 +35,6 @@ fn main() {
         )
 
         .arg(
-            Arg::with_name("psw")
-                .long("psw")
-                .help("Begin the process scaning && combine with watcher or walker command")
-                .takes_value(false)
-                .required(false),
-        )
-        .arg(
             Arg::with_name("report")
                 .long("report")
                 .short("r")

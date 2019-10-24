@@ -38,28 +38,6 @@ fn start_procc() {
     }
 }
 
-
-fn pss_watcher(folders: Vec<&str>, folders_walk: Vec<&str>) {
-    let (s, r): (Sender<Watcher>, Receiver<Watcher>) = unbounded();
-    let (s1, r1): (Sender<Event>, Receiver<Event>) = unbounded();
-    start(s1);
-    if folders.len() <= 0 || folders_walk.len() <= 0 {
-        return;
-    }
-    if folders.len() > 0 {
-        start_watch(folders, s.clone());
-    }
-    if folders_walk.len() > 0 {
-        start_watch_walker(folders_walk, s.clone());
-    }
-    loop {
-        print_ps(&r1);
-        inotify_print(&r,&s)
-
-    }
-
-}
-
 fn start_watch(folders: Vec<&str>, s: Sender<Watcher>) {
     for f in folders {
         let result = i_start(f, s.clone());
@@ -99,9 +77,7 @@ pub fn begin(cmds: &mut Root, args: ArgMatches) -> Result<(), Error> {
     let folders: Vec<_> = args.values_of("watch").into_iter().flatten().collect();
     let folders_walk: Vec<_> = args.values_of("walker").into_iter().flatten().collect();
     if folders_walk.len() > 0 || folders.len() > 0 {
-        if !args.is_present("psw"){
-            watcher(folders.clone(), folders_walk.clone());
-        }
+        watcher(folders.clone(), folders_walk.clone());
     }
     if args.is_present("enum") {
         let report = args.value_of("report").unwrap_or("none");
@@ -112,9 +88,6 @@ pub fn begin(cmds: &mut Root, args: ArgMatches) -> Result<(), Error> {
         start_procc();
     }
 
-    if args.is_present("psw") {
-        pss_watcher(folders,folders_walk);
-    }
     let cmds_enum = args.value_of("cmds_enum").unwrap_or("none");
     if cmds_enum != "none" {
         export_cmd_list(cmds, cmds_enum)?;
