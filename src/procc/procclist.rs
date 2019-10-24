@@ -1,4 +1,4 @@
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Receiver, Sender};
 use failure::{err_msg, Error};
 use std::collections::HashMap;
 use std::fs::{self, ReadDir};
@@ -88,6 +88,19 @@ pub fn refresh(procc_list: &mut HashMap<i32, String>, sender: Sender<Event>) -> 
         }
     }
     Ok(())
+}
+pub fn print_ps(r: &Receiver<Event>) {
+    let data = r.recv();
+    match data {
+        Ok(data) => {
+            if data.cmd_s != "" {
+                println!("PID:{},UID:{},CMD:\t{}", data.pid_s, data.uid_s, data.cmd_s);
+            }
+        }
+        Err(e) => {
+            println!("{:?}", e);
+        }
+    }
 }
 
 pub fn start(sender: Sender<Event>) {

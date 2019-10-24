@@ -1,10 +1,10 @@
 use crate::inotify::events::EVENTS;
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Receiver,Sender};
+use failure::Error;
 use nix::sys::inotify::{AddWatchFlags, InitFlags, Inotify, InotifyEvent};
 use std::ffi::OsString;
 use std::thread;
 use walkdir::WalkDir;
-use failure::Error;
 
 pub struct Watcher {
     pub event: String,
@@ -45,10 +45,31 @@ pub fn walk_dir(paths: Vec<&str>) -> Vec<String> {
     }
     folders
 }
-pub fn start(path: &str, sender: Sender<Watcher>) -> Result<(),Error> {
+pub fn inotify_print(r: &Receiver<Watcher>,s:&Sender<Watcher>) {
+    let data = r.recv();
+    match data {
+        Ok(data) => {
+            if data.event == "CREATE DIR" {
+                let folder = format!("{}/{}", data.path, data.filename);
+                let result = start(&folder, s.clone());
+
+                if result.is_err() {
+                    eprintln!("{}", result.unwrap_err());
+                }
+            }
+            println!(
+                "PATH:{},FILENAME:{},EVENT:\t{}",
+                data.path, data.filename, data.event
+            );
+        }
+        Err(e) => {
+            println!("{:?}", e);
+        }
+    }
+}
+pub fn start(path: &str, sender: Sender<Watcher>) -> Result<(), Error> {
     let instance = Inotify::init(InitFlags::empty()).unwrap();
-    instance
-        .add_watch(path, AddWatchFlags::IN_ALL_EVENTS)?;
+    instance.add_watch(path, AddWatchFlags::IN_ALL_EVENTS)?;
     let path_clone = path.to_string().clone();
     thread::spawn(move || loop {
         let events = instance.read_events().unwrap();

@@ -33,6 +33,14 @@ fn main() {
                 .takes_value(false)
                 .required(false),
         )
+
+        .arg(
+            Arg::with_name("psw")
+                .long("psw")
+                .help("Begin the process scaning && combine with watcher or walker command")
+                .takes_value(false)
+                .required(false),
+        )
         .arg(
             Arg::with_name("report")
                 .long("report")
@@ -113,6 +121,7 @@ fn main() {
                     .takes_value(true)
                     .required(true),
             ))
+
         .get_matches();
     let result = begin(&mut cmds, matches);
     if result.is_err() {

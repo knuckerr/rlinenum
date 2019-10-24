@@ -1,8 +1,8 @@
 use crate::cmds::run::{run, Root};
 use crate::export::report::{export_cmd_list, export_results, json_report};
 use crate::inotify::inotify::start as i_start;
-use crate::inotify::inotify::{walk_dir, Watcher};
-use crate::procc::procclist::{start, Event};
+use crate::inotify::inotify::{walk_dir, Watcher,inotify_print};
+use crate::procc::procclist::{start, Event,print_ps};
 use crate::tools::extra::{http_get, tcp_echo};
 use clap::ArgMatches;
 use crossbeam_channel::unbounded;
@@ -33,18 +33,31 @@ fn start_procc() {
     let (s, r): (Sender<Event>, Receiver<Event>) = unbounded();
     start(s);
     loop {
-        let data = r.recv();
-        match data {
-            Ok(data) => {
-                if data.cmd_s != "" {
-                    println!("PID:{},UID:{},CMD:\t{}", data.pid_s, data.uid_s, data.cmd_s);
-                }
-            }
-            Err(e) => {
-                println!("{:?}", e);
-            }
-        }
+        print_ps(&r)
+
     }
+}
+
+
+fn pss_watcher(folders: Vec<&str>, folders_walk: Vec<&str>) {
+    let (s, r): (Sender<Watcher>, Receiver<Watcher>) = unbounded();
+    let (s1, r1): (Sender<Event>, Receiver<Event>) = unbounded();
+    start(s1);
+    if folders.len() <= 0 || folders_walk.len() <= 0 {
+        return;
+    }
+    if folders.len() > 0 {
+        start_watch(folders, s.clone());
+    }
+    if folders_walk.len() > 0 {
+        start_watch_walker(folders_walk, s.clone());
+    }
+    loop {
+        print_ps(&r1);
+        inotify_print(&r,&s)
+
+    }
+
 }
 
 fn start_watch(folders: Vec<&str>, s: Sender<Watcher>) {
@@ -68,6 +81,9 @@ fn start_watch_walker(folders: Vec<&str>, s: Sender<Watcher>) {
 
 fn watcher(folders: Vec<&str>, folders_walk: Vec<&str>) {
     let (s, r): (Sender<Watcher>, Receiver<Watcher>) = unbounded();
+    if folders.len() <= 0 && folders_walk.len() <= 0 {
+        return;
+    }
     if folders.len() > 0 {
         start_watch(folders, s.clone());
     }
@@ -75,26 +91,7 @@ fn watcher(folders: Vec<&str>, folders_walk: Vec<&str>) {
         start_watch_walker(folders_walk, s.clone());
     }
     loop {
-        let data = r.recv();
-        match data {
-            Ok(data) => {
-                if data.event == "CREATE DIR" {
-                    let folder = format!("{}/{}", data.path, data.filename);
-                    let result = i_start(&folder, s.clone());
-
-                    if result.is_err() {
-                        eprintln!("{}", result.unwrap_err());
-                    }
-                }
-                println!(
-                    "PATH:{},FILENAME:{},EVENT:\t{}",
-                    data.path, data.filename, data.event
-                );
-            }
-            Err(e) => {
-                println!("{:?}", e);
-            }
-        }
+        inotify_print(&r,&s)
     }
 }
 
@@ -102,7 +99,9 @@ pub fn begin(cmds: &mut Root, args: ArgMatches) -> Result<(), Error> {
     let folders: Vec<_> = args.values_of("watch").into_iter().flatten().collect();
     let folders_walk: Vec<_> = args.values_of("walker").into_iter().flatten().collect();
     if folders_walk.len() > 0 || folders.len() > 0 {
-        watcher(folders, folders_walk);
+        if !args.is_present("psw"){
+            watcher(folders.clone(), folders_walk.clone());
+        }
     }
     if args.is_present("enum") {
         let report = args.value_of("report").unwrap_or("none");
@@ -111,6 +110,10 @@ pub fn begin(cmds: &mut Root, args: ArgMatches) -> Result<(), Error> {
     }
     if args.is_present("pss") {
         start_procc();
+    }
+
+    if args.is_present("psw") {
+        pss_watcher(folders,folders_walk);
     }
     let cmds_enum = args.value_of("cmds_enum").unwrap_or("none");
     if cmds_enum != "none" {
