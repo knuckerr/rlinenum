@@ -1,7 +1,3 @@
-Sure, here's a README file for the provided code:
-
----
-
 # Rlinuem
 
 Rlinuem is a tool for performing enumeration scanning, process monitoring, and inotify-based folder watching. This utility provides a command-line interface for initiating different functionalities and exporting results.
